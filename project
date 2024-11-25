@@ -1,0 +1,170 @@
+
+#include <iostream>
+#include <string>
+#include <vector>
+#include <map>
+#include <fstream>
+#include <algorithm>
+
+using namespace std;
+
+// Base class for user
+class User {
+protected:
+    string name, email, password, contact;
+
+public:
+    User(string name = "", string email = "", string password = "", string contact = "")
+        : name(name), email(email), password(password), contact(contact) {}
+
+    virtual void displayMenu() = 0; // Abstract method for menu
+};
+
+class Admin : public User {
+private:
+    map<int, string> inventory; // Stores items (ID, Name)
+
+public:
+    Admin(string name, string email, string password, string contact)
+        : User(name, email, password, contact) {}
+
+    void addItem(int id, const string &item) {
+        inventory[id] = item;
+        cout << "Item added successfully.\n";
+    }
+
+    void removeItem(int id) {
+        if (inventory.erase(id)) {
+            cout << "Item removed successfully.\n";
+        } else {
+            cout << "Item not found.\n";
+        }
+    }
+
+    void viewInventory() {
+        cout << "Inventory:\n";
+        for (auto &item : inventory) {
+            cout << "ID: " << item.first << ", Item: " << item.second << endl;
+        }
+    }
+
+    void displayMenu() override {
+        cout << "\nAdmin Menu:\n1. Add Item\n2. Remove Item\n3. View Inventory\n4. Logout\n";
+    }
+};
+class Renter : public User {
+private:
+    vector<int> rentedItems;
+
+public:
+    Renter(string name, string email, string password, string contact)
+        : User(name, email, password, contact) {}
+
+    void rentItem(int id) {
+        rentedItems.push_back(id);
+        cout << "Item rented successfully.\n";
+    }
+
+    void viewRentedItems() {
+        cout << "Rented Items:\n";
+        for (int id : rentedItems) {
+            cout << "ID: " << id << endl;
+        }
+    }
+
+    void displayMenu() override {
+        cout << "\nRenter Menu:\n1. Rent Item\n2. View Rented Items\n3. Logout\n";
+    }
+};
+
+void saveToFile(const string &filename, const map<int, string> &inventory) {
+    ofstream file(filename);
+    for (const auto &item : inventory) {
+        file << item.first << "," << item.second << endl;
+    }
+    file.close();
+}
+
+void loadFromFile(const string &filename, map<int, string> &inventory) {
+    ifstream file(filename);
+    string line;
+    while (getline(file, line)) {
+        int id;
+        string name;
+        size_t pos = line.find(',');
+        id = stoi(line.substr(0, pos));
+        name = line.substr(pos + 1);
+        inventory[id] = name;
+    }
+    file.close();
+}
+
+int main() {
+    Admin admin("Admin", "admin@example.com", "admin123", "1234567890");
+    Renter renter("User", "user@example.com", "user123", "0987654321");
+
+    map<int, string> inventory;
+    loadFromFile("inventory.txt", inventory);
+
+    while (true) {
+        int choice;
+        cout << "\nSelect Role:\n1. Admin\n2. Renter\n3. Exit\n";
+        cin >> choice;
+
+        if (choice == 1) {
+            int adminChoice;
+            do {
+                admin.displayMenu();
+                cin >> adminChoice;
+                switch (adminChoice) {
+                case 1: {
+                    int id;
+                    string item;
+                    cout << "Enter ID and Item Name: ";
+                    cin >> id;
+                    cin.ignore();
+                    getline(cin, item);
+                    admin.addItem(id, item);
+                    break;
+                }
+                case 2: {
+                    int id;
+                    cout << "Enter Item ID to Remove: ";
+                    cin >> id;
+                    admin.removeItem(id);
+                    break;
+                }
+                case 3:
+                    admin.viewInventory();
+                    break;
+                }
+            } while (adminChoice != 4);
+        } else if (choice == 2) {
+            int renterChoice;
+            do {
+                renter.displayMenu();
+                cin >> renterChoice;
+                switch (renterChoice) {
+                case 1: {
+                    int id;
+                    cout << "Enter Item ID to Rent: ";
+                    cin >> id;
+                    renter.rentItem(id);
+                    break;
+                }
+                case 2:
+                    renter.viewRentedItems();
+                    break;
+                }
+            } while (renterChoice != 3);
+        } else if (choice == 3) {
+            saveToFile("inventory.txt", inventory);
+            cout << "Goodbye!\n";
+            break;
+        } else {
+            cout << "Invalid choice. Try again.\n";
+        }
+    }
+
+    return 0;
+}
